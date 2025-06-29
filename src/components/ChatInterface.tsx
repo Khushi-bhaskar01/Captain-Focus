@@ -38,6 +38,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
   const [showSettings, setShowSettings] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => {
     const saved = localStorage.getItem('captainFocusVoiceSettings');
     return saved ? JSON.parse(saved) : {
@@ -59,6 +60,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
     scrollToBottom();
   }, [messages]);
 
+  // Check backend connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const health = await omnidimensionAPI.current.checkHealth();
+        if (health) {
+          setConnectionStatus('connected');
+          console.log('✅ Backend connected successfully');
+          
+          // Check if Omnidimension API is configured - FIXED ERROR MESSAGE
+          if (health.environment && !health.environment.hasApiKey) {
+            setApiError('Omnidimension API key not configured. Please set VITE_OMNIDIMENSION_API_KEY environment variable in your backend .env file.');
+          } else if (!health.omnidimensionApiHealth) {
+            setApiError('Omnidimension API is not responding. Please check your API key and network connection.');
+          }
+        } else {
+          setConnectionStatus('error');
+          console.warn('⚠️ Backend health check failed');
+          setApiError('Backend health check failed. Please ensure the backend service is running and accessible.');
+        }
+      } catch (error) {
+        setConnectionStatus('error');
+        console.error('❌ Backend connection failed:', error);
+        setApiError('Cannot connect to backend server. Please ensure the backend service is running.');
+      }
+    };
+
+    checkConnection();
+  }, []);
+
   // Save voice settings to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('captainFocusVoiceSettings', JSON.stringify(voiceSettings));
@@ -70,9 +101,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
       const voices = speechSynthesis.getVoices();
       setAvailableVoices(voices);
       
-      // If no voice is selected or the selected voice doesn't exist, pick a default
       if (voices.length > 0 && (voiceSettings.selectedVoice >= voices.length || voiceSettings.selectedVoice < 0)) {
-        // Try to find a female voice first, otherwise use the first available
         const femaleVoice = voices.findIndex(voice => 
           voice.name.toLowerCase().includes('female') || 
           voice.name.toLowerCase().includes('woman') ||
@@ -152,13 +181,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
 
   const speakText = (text: string) => {
     if ('speechSynthesis' in window) {
-      // Cancel any ongoing speech
       speechSynthesis.cancel();
       
       setIsSpeaking(true);
       const utterance = new SpeechSynthesisUtterance(text.replace(/[🎮🤔🌙⚡🎯🧠💡🗝️📚⚔️🚀✨🎉🏆🧩💙🌟😌]/g, ''));
       
-      // Apply voice settings
       if (availableVoices[voiceSettings.selectedVoice]) {
         utterance.voice = availableVoices[voiceSettings.selectedVoice];
       }
@@ -200,14 +227,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
         content: msg.text
       }));
 
-      // Add system prompt and current user message
+      // Add current user message
       const apiMessages = [
         { role: 'system' as const, content: omnidimensionAPI.current.getSystemPrompt() },
         ...conversationHistory,
         { role: 'user' as const, content: currentInput }
       ];
 
-      // Get response from Omnidimension API
+      // Get response from Omnidimension API via backend
       const responseText = await omnidimensionAPI.current.sendMessage(apiMessages);
       
       const mood = detectMood(currentInput);
@@ -229,7 +256,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
       setApiError(error instanceof Error ? error.message : 'Failed to get response from AI');
       
       // Fallback response
-      const fallbackResponse = "🤖 Oops! I'm having trouble connecting to my knowledge base right now. Please check your API key configuration and try again! In the meantime, feel free to ask me anything - I'll do my best to help! ⚡";
+      const fallbackResponse = "🤖 I'm having trouble connecting to my AI brain right now, but I'm still here to help! This might be due to API configuration issues. Please check the backend logs and ensure your Omnidimension API key is properly set. ⚡";
       
       const captainMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -275,6 +302,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
     return `${name} (${lang})`;
   };
 
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus) {
+      case 'connected': return 'text-green-400';
+      case 'error': return 'text-red-400';
+      default: return 'text-yellow-400';
+    }
+  };
+
+  const getConnectionStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected': return '✅ Connected';
+      case 'error': return '❌ Connection Error';
+      default: return '🔄 Connecting...';
+    }
+  };
+
   return (
     <div className="h-[600px] flex flex-col relative">
       {/* API Error Banner */}
@@ -282,7 +325,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
         <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 m-4 flex items-center space-x-2">
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-red-300 text-sm font-medium">API Error</p>
+            <p className="text-red-300 text-sm font-medium">API Configuration Issue</p>
             <p className="text-red-200 text-xs">{apiError}</p>
           </div>
           <button
@@ -293,6 +336,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
           </button>
         </div>
       )}
+
+      {/* Connection Status */}
+      <div className="px-6 py-2 bg-black/10 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className={`text-xs font-medium ${getConnectionStatusColor()}`}>
+              {getConnectionStatusText()}
+            </span>
+            <span className="text-xs text-gray-400">
+              Backend: {omnidimensionAPI.current.getBackendUrl()}
+            </span>
+          </div>
+          <div className="text-xs text-gray-400">
+            Omnidimension AI Integration
+          </div>
+        </div>
+      </div>
 
       {/* Voice Settings Modal */}
       {showSettings && (
