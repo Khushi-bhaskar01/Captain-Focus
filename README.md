@@ -113,3 +113,10 @@ Unlike generic AI chatbots, **Captain Focus** understands your voice, detects yo
 ```bash
 git clone https://github.com/your-username/captain-focus.git
 cd captain-focus
+```
+---
+📬 Contact & Credits
+Made by Khushi Bhaskar
+Built with ❤️ using Omnidimension SDK
+
+
