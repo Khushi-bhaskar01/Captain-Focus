@@ -4,13 +4,6 @@ Welcome to **Captain Focus**, a gamified, emotion-aware AI learning agent built 
 
 ---
 
-## 🚀 Demo
-
-▶️ [Demo Video Here](#)  
-🧠 Ask anything, get answers, feel supported.
-
----
-
 ## 📚 About The Project
 
 Captain Focus is an **AI tutor** that adapts to your **mood**, supports **voice-based interactions**, and explains concepts like a real mentor. It’s designed to bring **engagement, clarity, and empathy** into online education.
