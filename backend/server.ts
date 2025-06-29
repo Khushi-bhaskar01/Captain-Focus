@@ -63,7 +63,7 @@ app.get('/', (req, res) => {
     },
     environment: {
       nodeEnv: process.env.NODE_ENV || 'development',
-      omnidimensionConfigured: !!process.env.VITE_OMNIDIMENSION_API_KEY,
+      omnidimensionConfigured: !!process.env.OMNIDIMENSION_API_KEY,
       activeAgents: activeAgents.size
     },
     timestamp: new Date().toISOString()
@@ -81,7 +81,7 @@ app.get('/api/health', (req, res) => {
       nodeEnv: process.env.NODE_ENV || 'development',
       nodeVersion: process.version,
       port: PORT,
-      omnidimensionApiKey: process.env.VITE_OMNIDIMENSION_API_KEY ? 'configured' : 'missing'
+      omnidimensionApiKey: process.env.OMNIDIMENSION_API_KEY ? 'configured' : 'missing'
     }
   });
 });
@@ -94,7 +94,7 @@ app.get('/api/agent/health', async (req, res) => {
       status: isHealthy ? 'healthy' : 'unhealthy',
       service: 'Omnidimension API',
       message: isHealthy ? 'Omnidimension API is accessible' : 'Omnidimension API is not responding',
-      apiKeyConfigured: !!process.env.VITE_OMNIDIMENSION_API_KEY,
+      apiKeyConfigured: !!process.env.OMNIDIMENSION_API_KEY,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -361,13 +361,13 @@ const server = app.listen(PORT, () => {
   console.log('🚀 Captain Focus Backend Server Started');
   console.log(`📍 Port: ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔑 Omnidimension API Key: ${process.env.VITE_OMNIDIMENSION_API_KEY ? '✅ Configured' : '❌ Missing'}`);
+  console.log(`🔑 Omnidimension API Key: ${process.env.OMNIDIMENSION_API_KEY ? '✅ Configured' : '❌ Missing'}`);
   console.log(`⏰ Started at: ${new Date().toISOString()}`);
   console.log('✅ Server is ready for deployment!');
   console.log('🎮 Captain Focus agents ready to be created!');
   
-  if (!process.env.VITE_OMNIDIMENSION_API_KEY) {
-    console.warn('⚠️  WARNING: VITE_OMNIDIMENSION_API_KEY not found - some features will use mock responses');
+  if (!process.env.OMNIDIMENSION_API_KEY) {
+    console.warn('⚠️  WARNING: OMNIDIMENSION_API_KEY not found - some features will use mock responses');
   }
 });
 

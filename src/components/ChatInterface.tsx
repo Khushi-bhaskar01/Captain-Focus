@@ -64,16 +64,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
   useEffect(() => {
     const checkConnection = async () => {
       try {
+        console.log('🔍 Checking backend connection...');
         const health = await omnidimensionAPI.current.checkHealth();
         if (health) {
           setConnectionStatus('connected');
           console.log('✅ Backend connected successfully');
           
-          // Check if Omnidimension API is configured - FIXED ERROR MESSAGE
-          if (health.environment && !health.environment.hasApiKey) {
-            setApiError('Omnidimension API key not configured. Please set VITE_OMNIDIMENSION_API_KEY environment variable in your backend .env file.');
-          } else if (!health.omnidimensionApiHealth) {
+          // Check if Omnidimension API is configured
+          if (health.environment && health.environment.hasApiKey === false) {
+            setApiError('Omnidimension API key not configured. Please add OMNIDIMENSION_API_KEY to your backend environment variables on Render.');
+          } else if (health.omnidimensionApiHealth === false) {
             setApiError('Omnidimension API is not responding. Please check your API key and network connection.');
+          } else {
+            // Clear any previous errors if everything is working
+            setApiError(null);
           }
         } else {
           setConnectionStatus('error');
@@ -234,7 +238,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
         { role: 'user' as const, content: currentInput }
       ];
 
-      // Get response from Omnidimension API via backend
+      // Get response from backend
       const responseText = await omnidimensionAPI.current.sendMessage(apiMessages);
       
       const mood = detectMood(currentInput);
@@ -345,7 +349,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
               {getConnectionStatusText()}
             </span>
             <span className="text-xs text-gray-400">
-              Backend: {omnidimensionAPI.current.getBackendUrl()}
+              Backend: https://captain-focus.onrender.com
             </span>
           </div>
           <div className="text-xs text-gray-400">

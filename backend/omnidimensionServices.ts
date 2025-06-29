@@ -17,7 +17,7 @@ interface ChatMessage {
 }
 
 // Use environment variable with fallback
-const OMNIDIMENSION_API_KEY = process.env.OMNIDIMENSION_API_KEY || process.env.VITE_OMNIDIMENSION_API_KEY;
+const OMNIDIMENSION_API_KEY = process.env.OMNIDIMENSION_API_KEY || process.env.OMNIDIMENSION_API_KEY;
 const OMNIDIMENSION_BASE_URL = process.env.OMNIDIMENSION_BASE_URL || 'https://api.omnidim.io';
 
 // Axios instance with default configuration

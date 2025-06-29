@@ -29,7 +29,7 @@ class OmnidimensionAPI {
   private backendUrl: string;
 
   constructor() {
-    // Use the environment variable for production, localhost for development
+    // Use the deployed backend URL for production
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       
@@ -37,12 +37,12 @@ class OmnidimensionAPI {
         // Local development
         this.backendUrl = 'http://localhost:3001';
       } else {
-        // Production - use the deployed backend URL
-        this.backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://captain-focus.onrender.com';
+        // Production - use your deployed backend
+        this.backendUrl = 'https://captain-focus.onrender.com';
       }
     } else {
       // Server-side fallback
-      this.backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      this.backendUrl = 'https://captain-focus.onrender.com';
     }
 
     console.log('🔗 Backend URL configured:', this.backendUrl);
