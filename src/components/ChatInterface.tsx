@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Heart, Brain, Zap, Mic, MicOff, Settings, X, AlertCircle } from 'lucide-react';
-import OmnidimensionAPI from '../services/omnidimensionApi';
+import { Send, Sparkles, Heart, Brain, Zap, Mic, MicOff, Settings, X} from 'lucide-react';
 
 interface Message {
   id: string;
@@ -37,8 +36,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const [showWidgetInfo, setShowWidgetInfo] = useState(true);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => {
     const saved = localStorage.getItem('captainFocusVoiceSettings');
     return saved ? JSON.parse(saved) : {
@@ -50,7 +48,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const omnidimensionAPI = useRef(new OmnidimensionAPI());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,40 +56,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  // Check backend connection on mount
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        console.log('🔍 Checking backend connection...');
-        const health = await omnidimensionAPI.current.checkHealth();
-        if (health) {
-          setConnectionStatus('connected');
-          console.log('✅ Backend connected successfully');
-          
-          // Check if Omnidimension API is configured
-          if (health.environment && health.environment.hasApiKey === false) {
-            setApiError('Omnidimension API key not configured. Please add OMNIDIMENSION_API_KEY to your backend environment variables on Render.');
-          } else if (health.omnidimensionApiHealth === false) {
-            setApiError('Omnidimension API is not responding. Please check your API key and network connection.');
-          } else {
-            // Clear any previous errors if everything is working
-            setApiError(null);
-          }
-        } else {
-          setConnectionStatus('error');
-          console.warn('⚠️ Backend health check failed');
-          setApiError('Backend health check failed. Please ensure the backend service is running and accessible.');
-        }
-      } catch (error) {
-        setConnectionStatus('error');
-        console.error('❌ Backend connection failed:', error);
-        setApiError('Cannot connect to backend server. Please ensure the backend service is running.');
-      }
-    };
-
-    checkConnection();
-  }, []);
 
   // Save voice settings to localStorage whenever they change
   useEffect(() => {
@@ -188,7 +151,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
       speechSynthesis.cancel();
       
       setIsSpeaking(true);
-      const utterance = new SpeechSynthesisUtterance(text.replace(/[🎮🤔🌙⚡🎯🧠💡🗝️📚⚔️🚀✨🎉🏆🧩💙🌟😌]/g, ''));
+      const utterance = new SpeechSynthesisUtterance(text.replace(/[🎮🤔🌙⚡🎯🧠💡🗝️📚⚔️🚀✨🎉🏆🧩💙🌟😌🔧🔌❌🌐]/g, ''));
       
       if (availableVoices[voiceSettings.selectedVoice]) {
         utterance.voice = availableVoices[voiceSettings.selectedVoice];
@@ -208,6 +171,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
     speakText("Hello! This is how Captain Focus sounds with your current voice settings. Ready for an epic learning adventure?");
   };
 
+  const generateCaptainResponse = (userMessage: string): string => {
+    const mood = detectMood(userMessage);
+    const responses = {
+      tired: [
+        "🌙 I sense you're feeling a bit drained, brave scholar! That's totally normal - even heroes need rest. Let's take this one small step at a time. What's one tiny thing we can tackle together? You've got more strength than you realize! 💙",
+        "😌 Hey there, tired warrior! Learning when you're exhausted is like fighting a boss battle on low health - let's find you a power-up! What subject is weighing on you? We'll break it down into bite-sized quests! ⚡",
+        "🛡️ I can tell today's been challenging! But you know what? Showing up when you're tired shows real courage. Let's turn this into a gentle learning adventure. What would help you feel more energized about studying? 🌟"
+      ],
+      confused: [
+        "🤔 Ah, a puzzle to solve! Confusion is just your brain saying 'I'm ready to level up!' Let's break this down step by step. What specific part has you scratching your head? I love a good mystery! 🧩",
+        "🗝️ Don't worry, confusion is the first step to understanding! Think of it as standing before a locked door - we just need to find the right key. What topic is giving you trouble? Let's unlock it together! ✨",
+        "🎯 Perfect! Questions mean you're thinking deeply. That's exactly what scholars do! Tell me what's puzzling you, and we'll turn this confusion into your next 'Aha!' moment. Ready for the challenge? 🚀"
+      ],
+      happy: [
+        "🎉 I love that energy! You're absolutely crushing it, champion! That enthusiasm is your secret weapon for learning. What amazing topic shall we dive into next? Let's keep this momentum going! ⚔️",
+        "✨ Yes! That's the spirit of a true learning hero! Your positive attitude is like a power-up that makes everything easier. What subject are you excited to explore? Let's turn up the adventure! 🏆",
+        "🌟 Fantastic! You're radiating scholar energy! When you're this motivated, there's no limit to what you can achieve. What quest shall we embark on? I'm ready to guide you to victory! 🎮"
+      ],
+      neutral: [
+        "🎮 Greetings, fellow scholar! I'm here and ready to turn your study session into an epic adventure. What subject would you like to conquer today? Every great quest starts with a single step! ⚔️",
+        "📚 Welcome back to our learning realm! Whether you're tackling homework, preparing for exams, or just curious about something, I'm your trusty companion. What knowledge shall we unlock together? ✨",
+        "🧠 Hello there, brave learner! I'm Captain Focus, and I'm excited to help you on your educational journey. What topic is calling to you today? Let's make learning feel like an adventure! 🚀"
+      ]
+    };
+
+    const moodResponses = responses[mood];
+    return moodResponses[Math.floor(Math.random() * moodResponses.length)];
+  };
+
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
 
@@ -222,26 +214,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
     const currentInput = inputText;
     setInputText('');
     setIsTyping(true);
-    setApiError(null);
 
-    try {
-      // Prepare conversation history for API
-      const conversationHistory = messages.map(msg => ({
-        role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.text
-      }));
-
-      // Add current user message
-      const apiMessages = [
-        { role: 'system' as const, content: omnidimensionAPI.current.getSystemPrompt() },
-        ...conversationHistory,
-        { role: 'user' as const, content: currentInput }
-      ];
-
-      // Get response from backend
-      const responseText = await omnidimensionAPI.current.sendMessage(apiMessages);
-      
+    // Simulate thinking time
+    setTimeout(() => {
       const mood = detectMood(currentInput);
+      const responseText = generateCaptainResponse(currentInput);
+      
       const captainMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: responseText,
@@ -255,25 +233,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
       
       // Speak the response
       speakText(responseText);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      setApiError(error instanceof Error ? error.message : 'Failed to get response from AI');
-      
-      // Fallback response
-      const fallbackResponse = "🤖 I'm having trouble connecting to my AI brain right now, but I'm still here to help! This might be due to API configuration issues. Please check the backend logs and ensure your Omnidimension API key is properly set. ⚡";
-      
-      const captainMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: fallbackResponse,
-        sender: 'captain',
-        mood: 'neutral',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, captainMessage]);
-      setIsTyping(false);
-      speakText(fallbackResponse);
-    }
+    }, 1000 + Math.random() * 1000); // Random delay between 1-2 seconds
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -306,57 +266,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isVoiceActive, setIsVoice
     return `${name} (${lang})`;
   };
 
-  const getConnectionStatusColor = () => {
-    switch (connectionStatus) {
-      case 'connected': return 'text-green-400';
-      case 'error': return 'text-red-400';
-      default: return 'text-yellow-400';
-    }
-  };
-
-  const getConnectionStatusText = () => {
-    switch (connectionStatus) {
-      case 'connected': return '✅ Connected';
-      case 'error': return '❌ Connection Error';
-      default: return '🔄 Connecting...';
-    }
-  };
-
   return (
     <div className="h-[600px] flex flex-col relative">
-      {/* API Error Banner */}
-      {apiError && (
-        <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 m-4 flex items-center space-x-2">
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+      {/* Omnidimension Widget Info Banner */}
+      {showWidgetInfo && (
+        <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/50 rounded-lg p-4 m-4 flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
           <div className="flex-1">
-            <p className="text-red-300 text-sm font-medium">API Configuration Issue</p>
-            <p className="text-red-200 text-xs">{apiError}</p>
+            <p className="text-purple-300 text-sm font-medium">🎮 Omnidimension AI Widget Active!</p>
+            <p className="text-purple-200 text-xs">
+              Your advanced AI companion is now powered by Omnidimension technology. 
+              Look for the widget in the bottom-right corner for enhanced AI interactions!
+            </p>
           </div>
           <button
-            onClick={() => setApiError(null)}
-            className="text-red-400 hover:text-red-300"
+            onClick={() => setShowWidgetInfo(false)}
+            className="text-purple-400 hover:text-purple-300 flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
-
-      {/* Connection Status */}
-      <div className="px-6 py-2 bg-black/10 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className={`text-xs font-medium ${getConnectionStatusColor()}`}>
-              {getConnectionStatusText()}
-            </span>
-            <span className="text-xs text-gray-400">
-              Backend: https://captain-focus.onrender.com
-            </span>
-          </div>
-          <div className="text-xs text-gray-400">
-            Omnidimension AI Integration
-          </div>
-        </div>
-      </div>
 
       {/* Voice Settings Modal */}
       {showSettings && (
