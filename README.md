@@ -3,7 +3,8 @@
 Welcome to **Captain Focus**, a gamified, emotion-aware AI learning agent built using the **Omnidimension SDK**. This project is tailored to elevate your study sessions with intelligent, personalized, and motivating conversations — right inside your browser.
 
 ---
-
+## Demo: [website](https://react-app-123-gamma.vercel.app/)
+---
 ## 📚 About The Project
 
 Captain Focus is an **AI tutor** that adapts to your **mood**, supports **voice-based interactions**, and explains concepts like a real mentor. It’s designed to bring **engagement, clarity, and empathy** into online education.
